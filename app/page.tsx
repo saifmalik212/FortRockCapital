@@ -3,9 +3,18 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { PricingSection } from '@/components/PricingSection';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
-// import { DemoWidget } from '@/components/DemoWidget';
-// import { MetricCard } from '@/components/MetricCard';
 import { TypewriterEffect } from '@/components/TypewriterEffect';
+import { VideoModal } from '@/components/VideoModal';
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowRight, BarChart3, Shield, TrendingUp, Users, Lock, CreditCard, Moon } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { useRouter } from 'next/navigation';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
+import { Link as ScrollLink } from 'react-scroll';
 import { FaReddit } from 'react-icons/fa';
 import { 
   FaGithub, 
@@ -17,17 +26,57 @@ import {
   FaTiktok,
   FaYoutube
 } from 'react-icons/fa6';
-import { 
- Lock, CreditCard, Moon
-} from 'lucide-react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Link as ScrollLink } from 'react-scroll';
-import { VideoModal } from '@/components/VideoModal';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
+
+// Performance comparison data
+const performanceData = [
+  { year: "2019", sp500: 28.9, fortrock: 32.4 },
+  { year: "2020", sp500: 16.3, fortrock: 15.3 },
+  { year: "2021", sp500: 26.9, fortrock: 22.1 },
+  { year: "2022", sp500: -19.4, fortrock: 8.7 },
+  { year: "2023", sp500: 24.2, fortrock: 18.4 },
+  { year: "2024", sp500: 23.3, fortrock: 26.8 },
+]
+
+// Typewriter effect hook
+function useTypewriter(texts: string[], speed = 100, deleteSpeed = 50, pauseTime = 2000) {
+  const [displayText, setDisplayText] = useState("")
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    const currentText = texts[currentIndex]
+
+    const timeout = setTimeout(
+      () => {
+        if (!isDeleting) {
+          // Typing
+          if (displayText.length < currentText.length) {
+            setDisplayText(currentText.slice(0, displayText.length + 1))
+          } else {
+            // Finished typing, start deleting after pause
+            setTimeout(() => setIsDeleting(true), pauseTime)
+          }
+        } else {
+          // Deleting
+          if (displayText.length > 0) {
+            setDisplayText(displayText.slice(0, -1))
+          } else {
+            // Finished deleting, move to next text
+            setIsDeleting(false)
+            setCurrentIndex((prev) => (prev + 1) % texts.length)
+          }
+        }
+      },
+      isDeleting ? deleteSpeed : speed,
+    )
+
+    return () => clearTimeout(timeout)
+  }, [displayText, currentIndex, isDeleting, texts, speed, deleteSpeed, pauseTime])
+
+  return displayText
+}
 
 // Update workflowSteps to be more generic
 const workflowSteps = [
@@ -182,6 +231,7 @@ export default function LandingPage() {
   const { isInTrial } = useTrialStatus();
   const [activeSection, setActiveSection] = useState("overview");
   const sectionProgressValues = useSectionProgressValues(workflowSections.length);
+  const [isScrolled, setIsScrolled] = useState(false)
   
   const router = useRouter();
 
@@ -194,223 +244,444 @@ export default function LandingPage() {
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
+  const typewriterTexts = [
+    "Advanced AI algorithms driving superior investment returns",
+    "Machine learning models analyzing global market patterns", 
+    "Automated portfolio optimization for institutional clients",
+    "Real-time risk assessment powered by artificial intelligence",
+    "Quantitative strategies enhanced by deep learning technology",
+  ]
+
+  const typewriterText = useTypewriter(typewriterTexts, 80, 40, 1500)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY
+      setIsScrolled(scrollTop > 30)
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] relative">
-      {/* Enhanced Sticky Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-neutral-darker/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4 overflow-x-auto hide-scrollbar">
-            {workflowSections.map((section, index) => (
-              <ScrollLink
-                key={section.id}
-                to={section.id}
-                spy={true}
-                smooth={true}
-                offset={-100}
-                duration={500}
-                onSetActive={() => setActiveSection(section.id)}
-                className={`flex items-center cursor-pointer group min-w-fit mx-4 first:ml-0 last:mr-0`}
-              >
-                <div className="relative">
-                  <span 
-                    className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 transition-all duration-300
-                      ${activeSection === section.id 
-                      ? 'bg-primary dark:bg-primary-light text-white' 
-                      : 'bg-primary/10 dark:bg-primary-light/10 text-primary dark:text-primary-light group-hover:bg-primary/20 dark:group-hover:bg-primary-light/20'}`}
-                  >
-                    {index + 1}
-                  </span>
-                </div>
-                <span 
-                  className={`text-sm font-medium transition-colors duration-300 hidden md:block whitespace-nowrap
-                    ${activeSection === section.id 
-                    ? 'text-primary dark:text-primary-light' 
-                    : 'text-slate-600 dark:text-slate-300 group-hover:text-primary dark:group-hover:text-primary-light'}`}
-                >
-                  {section.title}
-                </span>
-              </ScrollLink>
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section - Now acts as Overview */}
-      <div id="overview" className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-light/10 to-accent-light/10" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative pt-20 pb-16 sm:pb-24">
-            {/* Header Content */}
-            <div className="text-center">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white">
-                <span className="block">Next.js + Stripe + Supabase</span>
-                <span className="block text-primary dark:text-primary-light">Production-Ready Template</span>
-              </h1>
-              <p className="mt-6 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-300">
-                Start building with authentication and payments in minutes.
-              </p>
-              
-              {/* CTA Buttons */}
-              <div className="mt-10 flex gap-4 justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsVideoModalOpen(true)}
-                  className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-lg shadow-lg hover:shadow-xl transition-all"
-                >
-                  Watch Demo
-                </motion.button>
-                <button 
-                  onClick={() => router.push('/dashboard')} 
-                  className="px-8 py-3 bg-white dark:bg-neutral-dark hover:bg-slate-50 dark:hover:bg-neutral-darker text-primary dark:text-primary-light border-2 border-primary dark:border-primary-light rounded-lg shadow-lg hover:shadow-xl transition-all"
-                >
-                  Start Free Trial
-                </button>
-              </div>
-            </div>
-
-            {/* Combined Preview: Code + Workflow Steps */}
-            <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Code Preview */}
-              <div className="relative">
-                <pre className="relative rounded-xl bg-slate-900 p-8 shadow-2xl">
-                  <code className="text-sm sm:text-base text-slate-100">
-                    <TypewriterEffect text={`// 🚀 The Ultimate Dev Setup
-import { useCoffee, useCode } from '@/hooks/dev';
-
-export const DevLife = () => {
-  const { coffee } = useCoffee();
-  const { bugs } = useCode();
-  
-  return (
-    <div className="dev-life">
-      <Status>
-        {coffee ? '⚡️ Coding Mode' : '😴 Need Coffee'}
-        {bugs === 0 ? '🎉 No Bugs!' : '🐛 Debug Time'}
-      </Status>
-    </div>
-  );`} />
-                  </code>
-                </pre>
-              </div>
-
-              {/* Workflow Steps */}
-              <div className="grid grid-cols-1 gap-4">
-                {workflowSteps.map((step, index) => (
-                  <motion.div
-                    key={step.title}
-                    initial={{ opacity: 1, y: 0 }}
-                    className="relative p-4 bg-white/5 dark:bg-neutral-dark border border-slate-200 dark:border-slate-700/50 backdrop-blur-sm rounded-xl shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-colors"
-                  >
-                    <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-primary dark:bg-primary-light text-white rounded-full flex items-center justify-center font-semibold">
-                      {index + 1}
-                    </div>
-                    <div className="ml-8">
-                      <h3 className="font-semibold text-slate-900 dark:text-white">{step.title}</h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">{step.description}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Hero Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/hero-background.png')",
+          height: "100vh",
+          zIndex: 1,
+        }}
+      >
+        {/* Overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
-      {/* Other sections */}
-      {workflowSections.slice(1).map((section, index) => (
-        <motion.section
-          key={section.id}
-          id={section.id}
-          className={`py-20 ${section.bgColor}`}
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-20%" }}
-          onViewportEnter={() => setActiveSection(section.id)}
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Section header */}
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-                {section.title}
-              </h2>
-              <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-                {section.description}
-              </p>
-            </div>
-
-            {/* Clean Metrics Display */}
-            {section.metrics && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                {section.metrics.map((metric, i) => (
-                  <motion.div
-                    key={metric.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10"
-                  >
-                    <div className="text-3xl font-bold text-primary mb-2">
-                      {metric.value}
-                    </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      {metric.label}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {/* Pricing Section */}
-            {section.id === "pricing" && <PricingSection />}
-          </div>
-        </motion.section>
-      ))}
-
-      {/* Enhanced CTA Section */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        className="relative py-20"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-light/10 to-accent-light/10" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative bg-white dark:bg-neutral-dark rounded-xl shadow-xl p-12 border border-slate-200 dark:border-slate-700">
-            <div className="text-center">
-              <motion.h2 
-                initial={{ y: 20 }}
-                whileInView={{ y: 0 }}
-                className="text-3xl font-bold text-slate-900 dark:text-white"
-              >
-                Ready to Get Started?
-              </motion.h2>
-              <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-                Start using our product today
-              </p>
-              
-              <div className="mt-10 flex gap-4 justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsVideoModalOpen(true)}
-                  className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-lg shadow-lg hover:shadow-xl transition-all"
-                >
-                  Watch Demo
-                </motion.button>
-                <motion.button 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push('/dashboard')}
-                  className="px-8 py-3 bg-white dark:bg-neutral-dark hover:bg-slate-50 dark:hover:bg-neutral-darker text-primary dark:text-primary-light border-2 border-primary dark:border-primary-light rounded-lg shadow-lg hover:shadow-xl transition-all"
-                >
-                  Start Free Trial
-                </motion.button>
-              </div>
-            </div>
-          </div>
+      {/* Professional Finance Background - Lower sections */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ top: "100vh", zIndex: 0 }}>
+        {/* Subtle Grid Pattern */}
+        <div className="absolute inset-0 opacity-[0.02]">
+          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="finance-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#finance-grid)" className="text-gray-900" />
+          </svg>
         </div>
-      </motion.div>
+
+        {/* Subtle Financial Chart Lines */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            {/* Market trend lines */}
+            <path
+              d="M 0 300 Q 200 250 400 280 T 800 260 T 1200 240"
+              stroke="currentColor"
+              strokeWidth="1"
+              fill="none"
+              className="text-gray-800"
+            />
+            <path
+              d="M 0 350 Q 250 320 500 340 T 1000 320 T 1400 300"
+              stroke="currentColor"
+              strokeWidth="1"
+              fill="none"
+              className="text-gray-700"
+            />
+            <path
+              d="M 0 400 Q 300 370 600 390 T 1200 370"
+              stroke="currentColor"
+              strokeWidth="1"
+              fill="none"
+              className="text-gray-600"
+            />
+          </svg>
+        </div>
+
+        {/* Subtle Data Points */}
+        <div className="absolute top-32 right-20 text-xs text-gray-900/[0.04] font-mono">AAPL 150.25 +2.3%</div>
+        <div className="absolute top-48 left-16 text-xs text-gray-900/[0.04] font-mono">SPY 485.67 +0.8%</div>
+        <div className="absolute bottom-40 right-32 text-xs text-gray-900/[0.04] font-mono">QQQ 392.14 +1.2%</div>
+        <div className="absolute bottom-56 left-24 text-xs text-gray-900/[0.04] font-mono">VTI 267.89 +0.6%</div>
+
+        {/* Very Subtle Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50/[0.01] via-transparent to-gray-100/[0.01]"></div>
+      </div>
+
+      {/* Dynamic Header */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out ${
+          isScrolled
+            ? "bg-black/95 backdrop-blur-md shadow-2xl mx-8 mt-2 rounded-2xl"
+            : "bg-black/10 backdrop-blur-sm mx-0"
+        }`}
+      >
+        <div
+          className={`mx-auto px-6 flex items-center justify-between transition-all duration-500 ease-out ${
+            isScrolled ? "py-3 w-full" : "py-3 container"
+          }`}
+        >
+          <div className="flex items-center">
+            <span
+              className={`text-lg font-bold transition-all duration-500 px-3 py-1 ${
+                isScrolled ? "text-white bg-transparent rounded-2xl" : "text-white bg-black/80 backdrop-blur-sm"
+              }`}
+            >
+              FortRock Capital
+            </span>
+          </div>
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link
+              href="#performance"
+              className={`transition-all duration-500 hover:opacity-80 text-sm font-medium ${
+                isScrolled ? "text-gray-300 hover:text-white" : "text-white hover:text-gray-200"
+              } font-mono`}
+            >
+              Performance
+            </Link>
+            <Link
+              href="#services"
+              className={`transition-all duration-500 hover:opacity-80 text-sm font-medium ${
+                isScrolled ? "text-gray-300 hover:text-white" : "text-white hover:text-gray-200"
+              } font-mono`}
+            >
+              Services
+            </Link>
+            <Link
+              href="#pricing"
+              className={`transition-all duration-500 hover:opacity-80 text-sm font-medium ${
+                isScrolled ? "text-gray-300 hover:text-white" : "text-white hover:text-gray-200"
+              } font-mono`}
+            >
+              Pricing
+            </Link>
+            {user ? (
+              <>
+                <Link href="/dcf">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={`transition-all duration-500 text-sm ml-4 ${
+                      isScrolled
+                        ? "bg-transparent text-white border-white hover:bg-white hover:text-black"
+                        : "bg-white/20 text-white border-white/50 hover:bg-white hover:text-black backdrop-blur-sm"
+                    } font-mono`}
+                  >
+                    Client Portal
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button
+                    size="sm"
+                    className={`transition-all duration-500 text-sm ${
+                      isScrolled
+                        ? "bg-white text-black hover:bg-gray-200"
+                        : "bg-white/90 text-black hover:bg-white backdrop-blur-sm"
+                    } font-mono`}
+                  >
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={`transition-all duration-500 text-sm ml-4 ${
+                      isScrolled
+                        ? "bg-transparent text-white border-white hover:bg-white hover:text-black"
+                        : "bg-white/20 text-white border-white/50 hover:bg-white hover:text-black backdrop-blur-sm"
+                    } font-mono`}
+                  >
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button
+                    size="sm"
+                    className={`transition-all duration-500 text-sm ${
+                      isScrolled
+                        ? "bg-white text-black hover:bg-gray-200"
+                        : "bg-white/90 text-black hover:bg-white backdrop-blur-sm"
+                    } font-mono`}
+                  >
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
+          </nav>
+        </div>
+      </header>
+
+      {/* Add padding to account for fixed header */}
+      <div className="pt-16 relative z-10">
+        {/* Hero Section with Background Image */}
+        <section className="py-24 relative min-h-screen flex items-end justify-end" style={{ zIndex: 2 }}>
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-2xl ml-auto text-right mb-8 mr-4">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 drop-shadow-2xl font-mono">
+                Full Stack AI
+                <br />
+                <span className="text-gray-200 font-mono">Investment Firm</span>
+              </h1>
+              <div className="text-xl text-green-400 mb-8 drop-shadow-lg min-h-[3rem] flex items-center justify-end font-mono">
+                <span className="font-mono">
+                  {typewriterText}
+                  <span className="animate-pulse text-green-400">|</span>
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-end">
+                {user ? (
+                  <Link href="/dashboard">
+                    <Button
+                      size="lg"
+                      className="bg-white/90 text-black hover:bg-white px-8 py-3 backdrop-blur-sm shadow-2xl font-mono"
+                    >
+                      Go to Dashboard
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    size="lg"
+                    onClick={() => router.push('/signup')}
+                    className="bg-white/90 text-black hover:bg-white px-8 py-3 backdrop-blur-sm shadow-2xl font-mono"
+                  >
+                    Start Investing
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                )}
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setIsVideoModalOpen(true)}
+                  className="bg-white/10 text-white border-white/50 hover:bg-white/20 px-8 py-3 backdrop-blur-sm shadow-2xl font-mono"
+                >
+                  View Performance
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Section - Overlapping with background */}
+        <section className="py-16 bg-white/95 backdrop-blur-sm relative" style={{ zIndex: 3, marginTop: "-10vh" }}>
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+              <div>
+                <div className="text-4xl font-bold text-black mb-2 font-mono">$2.4B</div>
+                <div className="text-gray-600 font-mono">Assets Under Management</div>
+              </div>
+              <div>
+                <div className="text-4xl font-bold text-black mb-2 font-mono">15+</div>
+                <div className="text-gray-600 font-mono">Years Experience</div>
+              </div>
+              <div>
+                <div className="text-4xl font-bold text-black mb-2 font-mono">12.8%</div>
+                <div className="text-gray-600 font-mono">Average Annual Return</div>
+              </div>
+              <div>
+                <div className="text-4xl font-bold text-black mb-2 font-mono">200+</div>
+                <div className="text-gray-600 font-mono">Institutional Clients</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Performance Comparison Chart */}
+        <section id="performance" className="py-16 bg-white relative">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-black mb-4 font-mono">Performance vs S&P 500</h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto font-mono">
+                Our AI-driven strategies consistently outperform traditional benchmarks through advanced machine
+                learning
+              </p>
+            </div>
+            <div className="max-w-4xl mx-auto">
+              <Card className="border-gray-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-black text-center font-mono">Annual Returns Comparison (%)</CardTitle>
+                  <CardDescription className="text-gray-600 text-center font-mono">
+                    FortRock Capital AI vs S&P 500 Index
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={performanceData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="year" />
+                        <YAxis tickFormatter={(value) => `${value}%`} />
+                        <Tooltip
+                          formatter={(value, name) => [`${value}%`, name === "sp500" ? "S&P 500" : "FortRock AI"]}
+                        />
+                        <Legend formatter={(value) => (value === "sp500" ? "S&P 500" : "FortRock AI")} />
+                        <Line type="monotone" dataKey="sp500" stroke="#6b7280" strokeWidth={2} name="S&P 500" />
+                        <Line type="monotone" dataKey="fortrock" stroke="#000000" strokeWidth={3} name="FortRock AI" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Services Section */}
+        <section id="services" className="py-20 bg-gray-50 relative">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-black mb-4 font-mono">AI-Powered Investment Solutions</h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto font-mono">
+                Cutting-edge artificial intelligence and machine learning technologies driving superior investment
+                outcomes
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Card className="border-gray-200 hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <TrendingUp className="h-12 w-12 text-black mb-4" />
+                  <CardTitle className="text-black font-mono">AI Equity Strategies</CardTitle>
+                  <CardDescription className="text-gray-600 font-mono">
+                    Machine learning algorithms for pattern recognition and predictive modeling
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-gray-600 space-y-2 font-mono">
+                    <li>• Deep learning analysis</li>
+                    <li>• Neural network models</li>
+                    <li>• Automated risk assessment</li>
+                  </ul>
+                </CardContent>
+              </Card>
+              <Card className="border-gray-200 hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <BarChart3 className="h-12 w-12 text-black mb-4" />
+                  <CardTitle className="text-black font-mono">Quantitative AI</CardTitle>
+                  <CardDescription className="text-gray-600 font-mono">
+                    Advanced algorithms processing vast datasets for optimal portfolio construction
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-gray-600 space-y-2 font-mono">
+                    <li>• Real-time data processing</li>
+                    <li>• Predictive analytics</li>
+                    <li>• Automated rebalancing</li>
+                  </ul>
+                </CardContent>
+              </Card>
+              <Card className="border-gray-200 hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <Shield className="h-12 w-12 text-black mb-4" />
+                  <CardTitle className="text-black font-mono">AI Risk Management</CardTitle>
+                  <CardDescription className="text-gray-600 font-mono">
+                    Intelligent risk monitoring and mitigation powered by artificial intelligence
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-gray-600 space-y-2 font-mono">
+                    <li>• Dynamic risk modeling</li>
+                    <li>• Anomaly detection</li>
+                    <li>• Adaptive hedging</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="py-20 bg-white relative">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-black mb-4 font-mono">Simple, Transparent Pricing</h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto font-mono">
+                Choose the plan that fits your investment needs
+              </p>
+            </div>
+            <PricingSection />
+          </div>
+        </section>
+
+        {/* Enhanced CTA Section */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          className="relative py-20 bg-gray-50"
+        >
+          <div className="container mx-auto px-4">
+            <div className="relative bg-white rounded-xl shadow-xl p-12 border border-gray-200">
+              <div className="text-center">
+                <motion.h2 
+                  initial={{ y: 20 }}
+                  whileInView={{ y: 0 }}
+                  className="text-3xl font-bold text-black font-mono"
+                >
+                  Ready to Get Started?
+                </motion.h2>
+                <p className="mt-4 text-lg text-gray-600 font-mono">
+                  Start using our AI-powered investment platform today
+                </p>
+                
+                <div className="mt-10 flex gap-4 justify-center">
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      onClick={() => setIsVideoModalOpen(true)}
+                      className="px-8 py-3 bg-black hover:bg-gray-800 text-white shadow-lg hover:shadow-xl transition-all font-mono"
+                      size="lg"
+                    >
+                      Watch Demo
+                    </Button>
+                  </motion.div>
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button 
+                      onClick={() => router.push(user ? '/dashboard' : '/signup')}
+                      variant="outline"
+                      className="px-8 py-3 bg-white hover:bg-gray-50 text-black border-2 border-black shadow-lg hover:shadow-xl transition-all font-mono"
+                      size="lg"
+                    >
+                      {user ? 'Go to Dashboard' : 'Start Free Trial'}
+                    </Button>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
       <VideoModal
         isOpen={isVideoModalOpen}
