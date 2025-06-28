@@ -10,13 +10,13 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Protected routes that require authentication
+  // If accessing a protected route
+  /*
   const protectedRoutes = ['/dashboard', '/dcf', '/profile']
   const isProtectedRoute = protectedRoutes.some(route => 
     req.nextUrl.pathname.startsWith(route)
   )
 
-  // If accessing a protected route
   if (isProtectedRoute) {
     // No session at all - redirect to login
     if (!session) {
@@ -44,6 +44,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/verify-email', req.url))
     }
   }
+  */
 
   // Redirect authenticated users away from auth pages
   const authRoutes = ['/login', '/signup']
